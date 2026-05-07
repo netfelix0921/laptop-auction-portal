@@ -480,18 +480,11 @@ function renderPanel(l) {
           </div>
         </div>
         <div>
-          <label style="font-size:0.75rem;font-weight:600;color:#334155;display:block;margin-bottom:6px;">Your Name</label>
+          <label style="font-size:0.75rem;font-weight:600;color:#334155;display:block;margin-bottom:6px;">Code Name</label>
           <div style="position:relative;">
             <i data-lucide="user" class="input-icon"></i>
-            <input class="form-input" id="bidName" type="text" placeholder="Enter your full name">
+            <input class="form-input" id="bidName" type="text" placeholder="Enter your code name">
           </div>
-        </div>
-      </div>
-      <div style="margin-bottom:14px;">
-        <label style="font-size:0.75rem;font-weight:600;color:#334155;display:block;margin-bottom:6px;">Employee Email</label>
-        <div style="position:relative;">
-          <i data-lucide="mail" class="input-icon"></i>
-          <input class="form-input" id="bidEmail" type="email" placeholder="you@company.com">
         </div>
       </div>
       <button class="btn-submit" onclick="submitBid(${l.id})">
@@ -564,43 +557,48 @@ document.getElementById('sortSelect').addEventListener('change', () => renderGri
 
 // ─── Submit Bid ───────────────────────────────────────────────────────────────
 async function submitBid(id) {
-  const amount = parseFloat(document.getElementById('bidAmount').value);
-  const name   = document.getElementById('bidName').value.trim();
-  const email  = document.getElementById('bidEmail').value.trim();
-  const laptop = laptops.find(l => l.id === id);
+  const amount   = parseFloat(document.getElementById('bidAmount').value);
+  const codeName = document.getElementById('bidName').value.trim();
+  const laptop   = laptops.find(l => l.id === id);
 
-  if (!amount || !name || !email) { showToast('⚠️ Please fill in all fields.'); return; }
-  if (amount <= laptop.currentBid)  { showToast(`⚠️ Bid must exceed ₱${laptop.currentBid.toLocaleString()}`); return; }
-  if (!email.includes('@'))         { showToast('⚠️ Please enter a valid email.'); return; }
+  if (!amount || !codeName) { showToast('⚠️ Please fill in all fields.'); return; }
+  if (amount <= laptop.currentBid) { showToast(`⚠️ Bid must exceed ₱${laptop.currentBid.toLocaleString()}`); return; }
 
   const btn = document.querySelector('.btn-submit');
   if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
 
   try {
-    // 1. Save bid record to bids table
+    // 1. Save bid record
     const { error: bidError } = await supabaseClient
       .from('bids')
       .insert([{
-        laptop_id:      laptop.id,
-        bid_amount:     amount,
-        bidder_name:    name,
-        employee_email: email
+        laptop_id:  laptop.id,
+        code_name:  codeName,
+        bid_amount: amount,
+        bid_date:   new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().replace('Z', '+08:00')
       }]);
     if (bidError) throw new Error(bidError.message);
 
-    // 2. Update laptop's current bid & total bids
+    // 2. Get accurate bid count from bids table
+    const { count, error: countError } = await supabaseClient
+      .from('bids')
+      .select('*', { count: 'exact', head: true })
+      .eq('laptop_id', laptop.id);
+    if (countError) throw new Error(countError.message);
+
+    // 3. Update laptop with new bid amount and accurate total
     const { error: updateError } = await supabaseClient
       .from('laptops')
       .update({
         bidding_amount: amount,
-        total_bids:     (laptop.totalBids || 0) + 1
+        total_bids:     count
       })
       .eq('id', laptop.id);
     if (updateError) throw new Error(updateError.message);
 
-    myBids[id] = { amount, name, email };
+    myBids[id] = { amount, codeName };
     showToast(`✅ Bid of ₱${amount.toLocaleString()} submitted!`);
-    await loadLaptops(); // refresh grid from Supabase
+    await loadLaptops();
   } catch (err) {
     console.error('submitBid error:', err);
     showToast('❌ Failed to submit bid. Please try again.');
