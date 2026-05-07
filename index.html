@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Laptop Auction Portal</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.min.js"></script>
+<script src="https://unpkg.com/lucide@0.263.1/dist/umd/lucide.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -242,7 +242,7 @@ let selectedId = 1;
 let wishlist = false;
 let myBids = {};
 
-// ─── Supabase Config ──────────────────────────────────────────────────────────
+// ─── Supabase Config ───────────────────────────────────────────────────────────
 const SUPABASE_URL      = "https://zbhwiofmcxvqiotskrsk.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_5jrh_mEKQGJbDkOSUNZFIw_TSLX_4jO";
 const supabaseClient    = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -260,7 +260,7 @@ function renderGrid(data) {
         <div style="font-weight:600;font-size:1rem;">No laptops found</div>
         <div style="font-size:0.875rem;margin-top:4px;">Try adjusting your search or check back later.</div>
       </div>`;
-    lucide.createIcons();
+    if (typeof lucide !== "undefined") lucide.createIcons();
     return;
   }
   grid.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:18px;">` +
@@ -300,7 +300,7 @@ function renderGrid(data) {
           </div>
         </div>`;
     }).join('') + `</div>`;
-  lucide.createIcons();
+  if (typeof lucide !== "undefined") lucide.createIcons();
 }
 
 // ─── Load Laptops from Supabase ───────────────────────────────────────────────
@@ -311,7 +311,7 @@ async function loadLaptops() {
       <i data-lucide="loader" style="width:36px;height:36px;margin:0 auto 12px;display:block;color:#2563EB;animation:spin 1s linear infinite;"></i>
       <div style="font-weight:500;">Loading laptops...</div>
     </div>`;
-  lucide.createIcons();
+  if (typeof lucide !== "undefined") lucide.createIcons();
 
   try {
     const { data, error } = await supabaseClient
@@ -336,7 +336,7 @@ async function loadLaptops() {
             </button>
           </div>
         </div>`;
-      lucide.createIcons();
+      if (typeof lucide !== "undefined") lucide.createIcons();
       return;
     }
 
@@ -351,7 +351,7 @@ async function loadLaptops() {
             </div>
           </div>
         </div>`;
-      lucide.createIcons();
+      if (typeof lucide !== "undefined") lucide.createIcons();
       return;
     }
 
@@ -402,7 +402,7 @@ async function loadLaptops() {
           </button>
         </div>
       </div>`;
-    lucide.createIcons();
+    if (typeof lucide !== "undefined") lucide.createIcons();
   }
 }
 
@@ -532,7 +532,7 @@ function renderPanel(l) {
       </div>
     </div>
   `;
-  lucide.createIcons();
+  if (typeof lucide !== "undefined") lucide.createIcons();
 }
 
 // ─── Select Laptop ────────────────────────────────────────────────────────────
@@ -644,7 +644,7 @@ document.querySelectorAll('[data-page]').forEach(item => {
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 // loadLaptops() is called above — it fetches from SharePoint then renders
-lucide.createIcons();
+if (typeof lucide !== "undefined") lucide.createIcons();
 </script>
 </body>
 </html>
