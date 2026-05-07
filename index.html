@@ -366,7 +366,7 @@ async function loadLaptops() {
       condition:   item.condition    || 'N/A',
       currentBid:  item.bidding_amount || 0,
       totalBids:   item.total_bids   || 0,
-      status:      item.status       || 'closed',
+      status:      (item.status || 'closed').toLowerCase(),
       closingDate: (() => {
         if (!item.closing_date) return 'N/A';
         // Handle DD/MM/YYYY HH:MM format from Supabase
@@ -418,7 +418,7 @@ function renderPanel(l) {
 
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
       <h2 style="font-size:1.1rem;font-weight:800;color:#0F172A;margin:0;">${l.name}</h2>
-      <span class="${l.status === 'open' ? 'badge-open' : 'badge-closed'}">${l.status === 'open' ? 'Open' : 'Closed'}</span>
+      <span class="${(l.status||'').toLowerCase() === 'open' ? 'badge-open' : 'badge-closed'}">${(l.status||'').toLowerCase() === 'open' ? 'Open' : 'Closed'}</span>
     </div>
 
     <div style="background:#F8FAFC;border-radius:14px;padding:14px;margin-bottom:16px;border:1.5px solid #E2E8F0;">
@@ -468,7 +468,7 @@ function renderPanel(l) {
       </div>
     </div>
 
-    ${l.status === 'open' ? `
+    ${(l.status||'').toLowerCase() === 'open' ? `
     <div style="margin-bottom:16px;">
       <div style="font-size:0.95rem;font-weight:700;color:#0F172A;border-left:3px solid #2563EB;padding-left:10px;margin-bottom:14px;">Place Your Bid</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
@@ -582,11 +582,9 @@ async function submitBid(id) {
       .from('bids')
       .insert([{
         laptop_id:      laptop.id,
-        laptop_name:    laptop.name,
         bid_amount:     amount,
         bidder_name:    name,
-        employee_email: email,
-        bid_date:       new Date().toISOString()
+        employee_email: email
       }]);
     if (bidError) throw new Error(bidError.message);
 
