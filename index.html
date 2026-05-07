@@ -243,7 +243,7 @@ let wishlist = false;
 let myBids = {};
 
 // ─── Supabase Config ──────────────────────────────────────────────────────────
-const SUPABASE_URL      = "https://zbhwiofmcxvqiotskrsk.supabase.co/rest/v1/";
+const SUPABASE_URL      = "https://zbhwiofmcxvqiotskrsk.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_5jrh_mEKQGJbDkOSUNZFIw_TSLX_4jO";
 const supabaseClient    = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -367,9 +367,19 @@ async function loadLaptops() {
       currentBid:  item.bidding_amount || 0,
       totalBids:   item.total_bids   || 0,
       status:      item.status       || 'closed',
-      closingDate: item.closing_date
-        ? new Date(item.closing_date).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' })
-        : 'N/A',
+      closingDate: (() => {
+        if (!item.closing_date) return 'N/A';
+        // Handle DD/MM/YYYY HH:MM format from Supabase
+        const raw = item.closing_date;
+        const ddmm = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(.*)/);
+        if (ddmm) {
+          const reordered = `${ddmm[3]}-${ddmm[2].padStart(2,'0')}-${ddmm[1].padStart(2,'0')}${ddmm[4]}`;
+          const d = new Date(reordered);
+          return isNaN(d) ? raw : d.toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' });
+        }
+        const d = new Date(raw);
+        return isNaN(d) ? raw : d.toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' });
+      })(),
       img:         item.image_url    || '',
       gradient:    "linear-gradient(135deg,#EFF6FF,#DBEAFE)"
     }));
