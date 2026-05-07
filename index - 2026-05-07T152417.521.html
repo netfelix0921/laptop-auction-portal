@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Laptop Auction Portal</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: { sans: ['Plus Jakarta Sans', 'Segoe UI', 'sans-serif'] },
+      colors: {
+        navy: { 900: '#0F172A', 800: '#1E293B', 700: '#334155' },
+        primary: { 600: '#2563EB', 700: '#1D4ED8', 500: '#3B82F6' },
+        success: '#16A34A',
+        muted: '#64748B',
+        border: '#E2E8F0',
+        surface: '#F8FAFC',
+      }
+    }
+  }
+}
+</script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif; background: #F8FAFC; }
+
+  /* Sidebar */
+  .sidebar { width: 220px; min-height: 100vh; background: #0F172A; position: fixed; top: 0; left: 0; bottom: 0; z-index: 40; display: flex; flex-direction: column; }
+  .sidebar-nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 10px; cursor: pointer; transition: all 0.18s; color: #94A3B8; font-size: 0.875rem; font-weight: 500; margin: 1px 8px; }
+  .sidebar-nav-item:hover { background: #1E293B; color: #fff; }
+  .sidebar-nav-item.active { background: #2563EB; color: #fff; }
+  .sidebar-nav-item i { width: 18px; height: 18px; flex-shrink: 0; }
+
+  /* Main */
+  .main-content { margin-left: 220px; min-height: 100vh; }
+
+  /* Card */
+  .laptop-card { background: #fff; border-radius: 18px; border: 1.5px solid #E2E8F0; box-shadow: 0 1px 8px 0 rgba(15,23,42,0.06); transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s; cursor: pointer; overflow: hidden; }
+  .laptop-card:hover { box-shadow: 0 8px 32px 0 rgba(37,99,235,0.13); transform: translateY(-3px); border-color: #2563EB33; }
+  .laptop-card.selected { border-color: #2563EB; box-shadow: 0 0 0 3px #2563EB22, 0 8px 32px 0 rgba(37,99,235,0.14); }
+
+  /* Bid button */
+  .btn-bid { background: linear-gradient(90deg, #2563EB, #7C3AED); color: #fff; border-radius: 10px; font-weight: 600; font-size: 0.875rem; padding: 10px 0; width: 100%; cursor: pointer; border: none; display: flex; align-items: center; justify-content: center; gap: 6px; transition: opacity 0.18s, transform 0.15s; }
+  .btn-bid:hover { opacity: 0.92; transform: scale(1.01); }
+  .btn-bid:disabled { background: #E2E8F0; color: #94A3B8; cursor: not-allowed; transform: none; }
+
+  /* Submit button */
+  .btn-submit { background: linear-gradient(90deg, #2563EB, #7C3AED); color: #fff; border-radius: 12px; font-weight: 700; font-size: 0.95rem; padding: 14px 0; width: 100%; cursor: pointer; border: none; display: flex; align-items: center; justify-content: center; gap: 8px; transition: opacity 0.18s, box-shadow 0.2s; box-shadow: 0 4px 18px rgba(37,99,235,0.28); }
+  .btn-submit:hover { opacity: 0.93; box-shadow: 0 6px 24px rgba(124,58,237,0.28); }
+
+  /* Right panel */
+  .detail-panel { width: 420px; min-width: 360px; position: fixed; right: 0; top: 0; bottom: 0; background: #fff; border-left: 1.5px solid #E2E8F0; box-shadow: -2px 0 24px rgba(15,23,42,0.06); overflow-y: auto; z-index: 30; padding: 0; display: flex; flex-direction: column; }
+
+  /* Input */
+  .form-input { width: 100%; background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 10px; padding: 10px 12px 10px 36px; font-size: 0.875rem; color: #0F172A; outline: none; transition: border-color 0.18s, box-shadow 0.18s; font-family: inherit; }
+  .form-input:focus { border-color: #2563EB; box-shadow: 0 0 0 3px #2563EB18; }
+  .input-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94A3B8; width: 16px; height: 16px; pointer-events: none; }
+
+  /* Badge */
+  .badge-open { background: #DCFCE7; color: #16A34A; font-size: 0.72rem; font-weight: 700; border-radius: 20px; padding: 2px 10px; }
+  .badge-closed { background: #FEE2E2; color: #DC2626; font-size: 0.72rem; font-weight: 700; border-radius: 20px; padding: 2px 10px; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 10px; }
+
+  /* Search */
+  .search-bar { background: #fff; border: 1.5px solid #E2E8F0; border-radius: 10px; padding: 9px 14px 9px 36px; font-size: 0.875rem; color: #0F172A; outline: none; width: 220px; transition: border-color 0.18s, box-shadow 0.18s; font-family: inherit; }
+  .search-bar:focus { border-color: #2563EB; box-shadow: 0 0 0 3px #2563EB18; width: 260px; }
+
+  /* Laptop image bg */
+  .laptop-img-bg { background: linear-gradient(135deg, #EFF6FF 0%, #F0F4FF 60%, #EEF2FF 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+
+  /* Guideline card */
+  .guideline-card { background: linear-gradient(135deg, #EFF6FF, #EDE9FE); border-radius: 16px; border: 1.5px solid #C7D2FE; }
+
+  /* Notification dot */
+  .notif-dot { width: 18px; height: 18px; background: #EF4444; border-radius: 50%; font-size: 0.65rem; color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; position: absolute; top: -5px; right: -5px; }
+
+  /* Sort dropdown */
+  .sort-select { background: #fff; border: 1.5px solid #E2E8F0; border-radius: 10px; padding: 8px 32px 8px 12px; font-size: 0.8rem; font-family: inherit; color: #334155; outline: none; font-weight: 500; cursor: pointer; appearance: none; }
+
+  /* Toast */
+  .toast { position: fixed; bottom: 24px; right: 440px; background: #0F172A; color: #fff; border-radius: 12px; padding: 14px 20px; font-size: 0.875rem; font-weight: 500; z-index: 100; box-shadow: 0 8px 24px rgba(0,0,0,0.18); transform: translateY(80px); opacity: 0; transition: all 0.3s cubic-bezier(.22,1,.36,1); }
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  /* Animations */
+  @keyframes fadeInUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+  .card-anim { animation: fadeInUp 0.35s ease both; }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+  .spec-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid #F1F5F9; }
+  .spec-row:last-child { border-bottom: none; }
+
+  .pagination-btn { width: 36px; height: 36px; border-radius: 8px; border: 1.5px solid #E2E8F0; background: #fff; color: #334155; font-size: 0.875rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+  .pagination-btn:hover { border-color: #2563EB; color: #2563EB; }
+  .pagination-btn.active { background: #2563EB; border-color: #2563EB; color: #fff; }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div style="padding:22px 16px 16px 16px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:32px;">
+      <div style="background:linear-gradient(135deg,#2563EB,#7C3AED);border-radius:12px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i data-lucide="monitor" style="width:20px;height:20px;color:#fff;"></i>
+      </div>
+      <div>
+        <div style="color:#fff;font-weight:800;font-size:0.95rem;line-height:1.2;">Laptop</div>
+        <div style="color:#64748B;font-size:0.72rem;font-weight:500;letter-spacing:0.03em;">Auction Portal</div>
+      </div>
+    </div>
+    <nav style="display:flex;flex-direction:column;gap:2px;" id="sidebar-nav">
+      <div class="sidebar-nav-item active" data-page="browse">
+        <i data-lucide="layout-grid"></i>
+        <span>Browse Laptops</span>
+      </div>
+      <div class="sidebar-nav-item" data-page="mybids">
+        <i data-lucide="gavel"></i>
+        <span>My Bids</span>
+      </div>
+      <div class="sidebar-nav-item" data-page="bidhistory">
+        <i data-lucide="clock"></i>
+        <span>Bid History</span>
+      </div>
+      <div class="sidebar-nav-item" data-page="profile">
+        <i data-lucide="user"></i>
+        <span>My Profile</span>
+      </div>
+      <div class="sidebar-nav-item" data-page="help">
+        <i data-lucide="help-circle"></i>
+        <span>Help &amp; Support</span>
+      </div>
+    </nav>
+  </div>
+  <div style="margin-top:auto;padding:16px;border-top:1px solid #1E293B;">
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-radius:10px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='#1E293B'" onmouseout="this.style.background='transparent'">
+      <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#2563EB,#7C3AED);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:0.85rem;flex-shrink:0;">JD</div>
+      <div style="overflow:hidden;">
+        <div style="color:#E2E8F0;font-size:0.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">John Doe</div>
+        <div style="color:#64748B;font-size:0.7rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">john.doe@company.com</div>
+      </div>
+      <i data-lucide="chevron-up" style="width:14px;height:14px;color:#64748B;margin-left:auto;flex-shrink:0;"></i>
+    </div>
+  </div>
+</aside>
+
+<!-- Main content -->
+<div class="main-content" style="padding-right: 420px;">
+
+  <!-- Header -->
+  <div style="padding: 28px 32px 0 32px; display:flex; align-items:center; justify-content:space-between;">
+    <div>
+      <h1 style="font-size:1.6rem;font-weight:800;color:#0F172A;letter-spacing:-0.02em;margin:0;">Laptop Auction Portal</h1>
+      <p style="color:#64748B;font-size:0.875rem;margin:4px 0 0 0;font-weight:400;">Bid for high-quality laptops at great prices</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <div style="position:relative;">
+        <i data-lucide="search" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:#94A3B8;pointer-events:none;"></i>
+        <input class="search-bar" id="searchInput" type="text" placeholder="Search laptops...">
+      </div>
+      <div style="position:relative;cursor:pointer;" onclick="showToast('No new notifications')">
+        <div style="width:38px;height:38px;border-radius:10px;background:#fff;border:1.5px solid #E2E8F0;display:flex;align-items:center;justify-content:center;">
+          <i data-lucide="bell" style="width:18px;height:18px;color:#334155;"></i>
+        </div>
+        <div class="notif-dot">3</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section header -->
+  <div style="padding: 24px 32px 16px 32px; display:flex; align-items:center; justify-content:space-between;">
+    <h2 style="font-size:1.05rem;font-weight:700;color:#0F172A;border-left:3px solid #2563EB;padding-left:12px;margin:0;">Browse Laptops</h2>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="position:relative;">
+        <select class="sort-select" id="sortSelect">
+          <option value="closing">Sort by: Closing Date</option>
+          <option value="price-asc">Price: Low to High</option>
+          <option value="price-desc">Price: High to Low</option>
+          <option value="bids">Most Bids</option>
+        </select>
+        <i data-lucide="chevron-down" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:#64748B;pointer-events:none;"></i>
+      </div>
+      <button onclick="showToast('Filter panel coming soon')" style="width:38px;height:38px;border-radius:10px;background:#fff;border:1.5px solid #E2E8F0;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+        <i data-lucide="sliders-horizontal" style="width:16px;height:16px;color:#64748B;"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Laptop Grid -->
+  <div style="padding: 0 32px;" id="laptopGrid">
+    <!-- Cards rendered by JS -->
+  </div>
+
+  <!-- Pagination -->
+  <div style="padding: 28px 32px 36px 32px; display:flex; align-items:center; justify-content:center; gap:6px;" id="pagination">
+    <button class="pagination-btn" id="prevPage"><i data-lucide="chevron-left" style="width:15px;height:15px;"></i></button>
+    <button class="pagination-btn active" onclick="goToPage(1)">1</button>
+    <button class="pagination-btn" onclick="goToPage(2)">2</button>
+    <button class="pagination-btn" onclick="goToPage(3)">3</button>
+    <span style="color:#94A3B8;font-size:0.85rem;padding:0 4px;">...</span>
+    <button class="pagination-btn" onclick="goToPage(8)">8</button>
+    <button class="pagination-btn" id="nextPage"><i data-lucide="chevron-right" style="width:15px;height:15px;"></i></button>
+  </div>
+</div>
+
+<!-- Right Detail Panel -->
+<div class="detail-panel" id="detailPanel">
+  <!-- Header gradient -->
+  <div style="background:linear-gradient(90deg,#2563EB,#7C3AED);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button style="width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,0.15);border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;" onclick="showToast('Browse laptops')">
+        <i data-lucide="arrow-left" style="width:16px;height:16px;"></i>
+      </button>
+      <span style="color:#fff;font-weight:700;font-size:0.95rem;">Laptop Details</span>
+    </div>
+    <button style="width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,0.15);border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;" onclick="toggleWishlist()">
+      <i data-lucide="heart" style="width:16px;height:16px;" id="wishlistIcon"></i>
+    </button>
+  </div>
+  <div style="padding: 20px;" id="panelContent">
+    <!-- Rendered by JS -->
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── Data ────────────────────────────────────────────────────────────────────
+// Laptops are loaded from SharePoint via Power Automate (see loadLaptops below)
+
+let selectedId = 1;
+let wishlist = false;
+let myBids = {};
+
+// ─── Config ───────────────────────────────────────────────────────────────────
+const GET_LAPTOPS_API    = "https://defaultd83e7e71c08a4fa2b76412954e8056.71.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/216746138cec497ebfc7dee221d3b80d/triggers/manual/paths/invoke?api-version=1";
+const SUBMIT_BID_API     = "https://defaultd83e7e71c08a4fa2b76412954e8056.71.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/c317b7e356964a0ea8679748277579cc/triggers/manual/paths/invoke?api-version=1"; // ← paste your SubmitBidAPI URL here
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let laptops = [];
+
+// ─── Render Grid ─────────────────────────────────────────────────────────────
+function renderGrid(data) {
+  const grid = document.getElementById('laptopGrid');
+  if (!data || data.length === 0) {
+    grid.innerHTML = `
+      <div style="text-align:center;padding:60px 20px;color:#64748B;">
+        <i data-lucide="laptop" style="width:48px;height:48px;margin:0 auto 16px;display:block;color:#CBD5E1;"></i>
+        <div style="font-weight:600;font-size:1rem;">No laptops found</div>
+        <div style="font-size:0.875rem;margin-top:4px;">Try adjusting your search or check back later.</div>
+      </div>`;
+    lucide.createIcons();
+    return;
+  }
+  grid.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:18px;">` +
+    data.map((l, i) => {
+      const isOpen = (l.status || '').toLowerCase() === 'open';
+      return `
+        <div class="laptop-card card-anim ${l.id === selectedId ? 'selected' : ''}"
+             style="animation-delay:${i * 0.05}s" onclick="selectLaptop(${l.id})">
+          <div style="background:${l.gradient};height:140px;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+            <img src="${l.img || ''}" alt="${l.name}"
+                 style="height:115px;object-fit:contain;"
+                 onerror="this.style.display='none'">
+          </div>
+          <div style="padding:14px;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;">
+              <div style="font-size:0.875rem;font-weight:700;color:#0F172A;line-height:1.3;">${l.name}</div>
+              <span class="${isOpen ? 'badge-open' : 'badge-closed'}" style="white-space:nowrap;flex-shrink:0;">
+                ${isOpen ? 'Open' : 'Closed'}
+              </span>
+            </div>
+            <div style="font-size:0.75rem;color:#64748B;margin-bottom:10px;">${l.cpu} • ${l.ram} • ${l.storage}</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+              <div>
+                <div style="font-size:0.7rem;color:#64748B;font-weight:500;">Current Bid</div>
+                <div style="font-size:1.05rem;font-weight:800;color:#16A34A;">₱${(l.currentBid || 0).toLocaleString()}</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:0.7rem;color:#64748B;font-weight:500;">Total Bids</div>
+                <div style="font-size:0.875rem;font-weight:700;color:#0F172A;">${l.totalBids || 0}</div>
+              </div>
+            </div>
+            <button class="btn-bid" ${!isOpen ? 'disabled' : ''}
+                    onclick="event.stopPropagation();selectLaptop(${l.id})">
+              <i data-lucide="gavel" style="width:14px;height:14px;"></i>
+              ${isOpen ? 'Place Bid' : 'Auction Closed'}
+            </button>
+          </div>
+        </div>`;
+    }).join('') + `</div>`;
+  lucide.createIcons();
+}
+
+// ─── Load Laptops from SharePoint ────────────────────────────────────────────
+async function loadLaptops() {
+  const grid = document.getElementById('laptopGrid');
+  grid.innerHTML = `
+    <div style="text-align:center;padding:60px 20px;color:#64748B;">
+      <i data-lucide="loader" style="width:36px;height:36px;margin:0 auto 12px;display:block;color:#2563EB;animation:spin 1s linear infinite;"></i>
+      <div style="font-weight:500;">Loading laptops from SharePoint...</div>
+    </div>`;
+  lucide.createIcons();
+
+  try {
+    const response = await fetch(GET_LAPTOPS_API);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const result = await response.json();
+
+    laptops = (result.value || []).map(item => ({
+      id:          item.ID,
+      name:        item.Title,
+      cpu:         item.Processor   || 'N/A',
+      ram:         item.RAM         || 'N/A',
+      storage:     item.Storage     || 'N/A',
+      display:     item.Display     || 'N/A',
+      resolution:  '',
+      condition:   item.Condition   || 'N/A',
+      currentBid:  item.BiddingAmount || 0,
+      totalBids:   item.TotalBids   || 0,
+      status:      item.Status      || 'Closed',
+      closingDate: item.ClosingDate  ? new Date(item.ClosingDate).toLocaleString('en-PH', { dateStyle:'medium', timeStyle:'short' }) : 'N/A',
+      img:         item.ImageURL    || '',
+      gradient:    "linear-gradient(135deg,#EFF6FF,#DBEAFE)"
+    }));
+
+    if (laptops.length === 0) {
+      renderGrid([]);
+      return;
+    }
+
+    selectedId = laptops[0].id;
+    renderGrid(laptops);
+    renderPanel(laptops[0]);
+  } catch (err) {
+    console.error('loadLaptops error:', err);
+    grid.innerHTML = `
+      <div style="text-align:center;padding:60px 20px;color:#DC2626;">
+        <i data-lucide="wifi-off" style="width:40px;height:40px;margin:0 auto 12px;display:block;"></i>
+        <div style="font-weight:600;font-size:1rem;">Could not load laptops</div>
+        <div style="font-size:0.8rem;color:#64748B;margin-top:6px;">${err.message}</div>
+        <button onclick="loadLaptops()" style="margin-top:14px;padding:8px 20px;background:#2563EB;color:#fff;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;border-radius:8px;">
+          Retry
+        </button>
+      </div>`;
+    lucide.createIcons();
+  }
+}
+
+loadLaptops();
+
+// ─── Render Detail Panel ──────────────────────────────────────────────────────
+function renderPanel(l) {
+  const panel = document.getElementById('panelContent');
+  panel.innerHTML = `
+    <div style="background:${l.gradient};border-radius:16px;height:180px;display:flex;align-items:center;justify-content:center;margin-bottom:18px;overflow:hidden;">
+      <img src="${l.img}" alt="${l.name}" style="height:155px;object-fit:contain;" onerror="this.src=''">
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <h2 style="font-size:1.1rem;font-weight:800;color:#0F172A;margin:0;">${l.name}</h2>
+      <span class="${l.status === 'open' ? 'badge-open' : 'badge-closed'}">${l.status === 'open' ? 'Open' : 'Closed'}</span>
+    </div>
+
+    <div style="background:#F8FAFC;border-radius:14px;padding:14px;margin-bottom:16px;border:1.5px solid #E2E8F0;">
+      <div class="spec-row">
+        <i data-lucide="cpu" style="width:15px;height:15px;color:#2563EB;flex-shrink:0;"></i>
+        <span style="font-size:0.78rem;color:#64748B;font-weight:500;width:100px;flex-shrink:0;">Processor</span>
+        <span style="font-size:0.8rem;color:#0F172A;font-weight:600;">${l.cpu}</span>
+      </div>
+      <div class="spec-row">
+        <i data-lucide="memory-stick" style="width:15px;height:15px;color:#2563EB;flex-shrink:0;"></i>
+        <span style="font-size:0.78rem;color:#64748B;font-weight:500;width:100px;flex-shrink:0;">RAM</span>
+        <span style="font-size:0.8rem;color:#0F172A;font-weight:600;">${l.ram}</span>
+      </div>
+      <div class="spec-row">
+        <i data-lucide="hard-drive" style="width:15px;height:15px;color:#2563EB;flex-shrink:0;"></i>
+        <span style="font-size:0.78rem;color:#64748B;font-weight:500;width:100px;flex-shrink:0;">Storage</span>
+        <span style="font-size:0.8rem;color:#0F172A;font-weight:600;">${l.storage}</span>
+      </div>
+      <div class="spec-row">
+        <i data-lucide="monitor" style="width:15px;height:15px;color:#2563EB;flex-shrink:0;"></i>
+        <span style="font-size:0.78rem;color:#64748B;font-weight:500;width:100px;flex-shrink:0;">Display</span>
+        <span style="font-size:0.8rem;color:#0F172A;font-weight:600;">${l.display} ${l.resolution}</span>
+      </div>
+      <div class="spec-row">
+        <i data-lucide="shield-check" style="width:15px;height:15px;color:#2563EB;flex-shrink:0;"></i>
+        <span style="font-size:0.78rem;color:#64748B;font-weight:500;width:100px;flex-shrink:0;">Condition</span>
+        <span style="font-size:0.8rem;color:#0F172A;font-weight:600;">${l.condition}</span>
+      </div>
+      <div class="spec-row">
+        <i data-lucide="calendar" style="width:15px;height:15px;color:#2563EB;flex-shrink:0;"></i>
+        <span style="font-size:0.78rem;color:#64748B;font-weight:500;width:100px;flex-shrink:0;">Closing Date</span>
+        <span style="font-size:0.8rem;color:#0F172A;font-weight:600;">${l.closingDate}</span>
+      </div>
+    </div>
+
+    <div style="background:linear-gradient(135deg,#F0FDF4,#DCFCE7);border-radius:14px;padding:16px;border:1.5px solid #BBF7D0;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-size:0.75rem;color:#64748B;font-weight:600;margin-bottom:4px;">Current Highest Bid</div>
+        <div style="font-size:1.75rem;font-weight:800;color:#16A34A;letter-spacing:-0.03em;">₱${l.currentBid.toLocaleString()}</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="width:40px;height:40px;background:rgba(22,163,74,0.12);border-radius:10px;display:flex;align-items:center;justify-content:center;margin:0 0 6px auto;">
+          <i data-lucide="users" style="width:18px;height:18px;color:#16A34A;"></i>
+        </div>
+        <div style="font-size:0.7rem;color:#64748B;font-weight:500;">Total Bids</div>
+        <div style="font-size:0.95rem;font-weight:800;color:#0F172A;">${l.totalBids} Bids</div>
+      </div>
+    </div>
+
+    ${l.status === 'open' ? `
+    <div style="margin-bottom:16px;">
+      <div style="font-size:0.95rem;font-weight:700;color:#0F172A;border-left:3px solid #2563EB;padding-left:10px;margin-bottom:14px;">Place Your Bid</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div>
+          <label style="font-size:0.75rem;font-weight:600;color:#334155;display:block;margin-bottom:6px;">Your Bid Amount</label>
+          <div style="position:relative;">
+            <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#94A3B8;font-size:0.85rem;font-weight:600;">₱</span>
+            <input class="form-input" id="bidAmount" type="number" placeholder="Enter amount" style="padding-left:28px;" min="${l.currentBid + 100}">
+          </div>
+        </div>
+        <div>
+          <label style="font-size:0.75rem;font-weight:600;color:#334155;display:block;margin-bottom:6px;">Your Name</label>
+          <div style="position:relative;">
+            <i data-lucide="user" class="input-icon"></i>
+            <input class="form-input" id="bidName" type="text" placeholder="Enter your full name">
+          </div>
+        </div>
+      </div>
+      <div style="margin-bottom:14px;">
+        <label style="font-size:0.75rem;font-weight:600;color:#334155;display:block;margin-bottom:6px;">Employee Email</label>
+        <div style="position:relative;">
+          <i data-lucide="mail" class="input-icon"></i>
+          <input class="form-input" id="bidEmail" type="email" placeholder="you@company.com">
+        </div>
+      </div>
+      <button class="btn-submit" onclick="submitBid(${l.id})">
+        Submit Bid
+        <svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><line x1='22' y1='2' x2='11' y2='13'/><polygon points='22 2 15 22 11 13 2 9 22 2'/></svg>
+      </button>
+    </div>
+    ` : `
+    <div style="background:#FEF2F2;border:1.5px solid #FECACA;border-radius:14px;padding:16px;margin-bottom:16px;text-align:center;">
+      <i data-lucide="lock" style="width:24px;height:24px;color:#DC2626;margin:0 auto 8px;display:block;"></i>
+      <div style="font-size:0.85rem;font-weight:600;color:#DC2626;">Auction Closed</div>
+      <div style="font-size:0.75rem;color:#94A3B8;margin-top:4px;">This auction has ended and no longer accepts bids.</div>
+    </div>
+    `}
+
+    <div class="guideline-card" style="padding:16px;">
+      <div style="display:flex;align-items:flex-start;gap:14px;">
+        <div style="width:44px;height:44px;background:linear-gradient(135deg,#2563EB,#7C3AED);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <i data-lucide="trophy" style="width:22px;height:22px;color:#fff;"></i>
+        </div>
+        <div>
+          <div style="font-size:0.82rem;font-weight:700;color:#1E40AF;margin-bottom:8px;">Bidding Guidelines</div>
+          <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:5px;">
+            <li style="font-size:0.75rem;color:#334155;display:flex;gap:6px;align-items:flex-start;">
+              <span style="color:#2563EB;font-weight:700;margin-top:1px;">•</span>
+              Your bid must be higher than the current bid.
+            </li>
+            <li style="font-size:0.75rem;color:#334155;display:flex;gap:6px;align-items:flex-start;">
+              <span style="color:#2563EB;font-weight:700;margin-top:1px;">•</span>
+              Bids cannot be edited or canceled once submitted.
+            </li>
+            <li style="font-size:0.75rem;color:#334155;display:flex;gap:6px;align-items:flex-start;">
+              <span style="color:#2563EB;font-weight:700;margin-top:1px;">•</span>
+              Ensure your information is correct before submitting.
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  `;
+  lucide.createIcons();
+}
+
+// ─── Select Laptop ────────────────────────────────────────────────────────────
+function selectLaptop(id) {
+  selectedId = id;
+  const laptop = laptops.find(l => l.id === id);
+  renderPanel(laptop);
+  renderGrid(getFilteredSorted());
+  document.getElementById('detailPanel').scrollTop = 0;
+}
+
+// ─── Filtering & Sorting ──────────────────────────────────────────────────────
+function getFilteredSorted() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const sort = document.getElementById('sortSelect').value;
+  let data = laptops.filter(l =>
+    l.name.toLowerCase().includes(q) ||
+    l.cpu.toLowerCase().includes(q) ||
+    l.storage.toLowerCase().includes(q)
+  );
+  if (sort === 'price-asc') data = [...data].sort((a,b) => a.currentBid - b.currentBid);
+  if (sort === 'price-desc') data = [...data].sort((a,b) => b.currentBid - a.currentBid);
+  if (sort === 'bids') data = [...data].sort((a,b) => b.totalBids - a.totalBids);
+  return data;
+}
+
+document.getElementById('searchInput').addEventListener('input', () => renderGrid(getFilteredSorted()));
+document.getElementById('sortSelect').addEventListener('change', () => renderGrid(getFilteredSorted()));
+
+// ─── Submit Bid ───────────────────────────────────────────────────────────────
+async function submitBid(id) {
+  const amount = parseFloat(document.getElementById('bidAmount').value);
+  const name   = document.getElementById('bidName').value.trim();
+  const email  = document.getElementById('bidEmail').value.trim();
+  const laptop = laptops.find(l => l.id === id);
+
+  if (!amount || !name || !email) { showToast('⚠️ Please fill in all fields.'); return; }
+  if (amount <= laptop.currentBid)  { showToast(`⚠️ Bid must exceed ₱${laptop.currentBid.toLocaleString()}`); return; }
+  if (!email.includes('@'))         { showToast('⚠️ Please enter a valid email.'); return; }
+
+  // Disable submit button while saving
+  const btn = document.querySelector('.btn-submit');
+  if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
+
+  try {
+    const response = await fetch(SUBMIT_BID_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        laptopId:      laptop.id,
+        laptopName:    laptop.name,
+        bidAmount:     amount,
+        bidderName:    name,
+        employeeEmail: email
+      })
+    });
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+    myBids[id] = { amount, name, email };
+    showToast(`✅ Bid of ₱${amount.toLocaleString()} submitted!`);
+    await loadLaptops(); // refresh data from SharePoint
+  } catch (err) {
+    console.error('submitBid error:', err);
+    showToast('❌ Failed to submit bid. Please try again.');
+    if (btn) { btn.disabled = false; btn.textContent = 'Submit Bid'; }
+  }
+}
+
+// ─── Wishlist ─────────────────────────────────────────────────────────────────
+function toggleWishlist() {
+  wishlist = !wishlist;
+  const icon = document.getElementById('wishlistIcon');
+  if (wishlist) { icon.style.fill = '#fff'; showToast('❤️ Added to wishlist'); }
+  else { icon.style.fill = 'transparent'; showToast('Removed from wishlist'); }
+}
+
+// ─── Toast ────────────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ─── Pagination ───────────────────────────────────────────────────────────────
+let currentPage = 1;
+function goToPage(n) {
+  currentPage = n;
+  showToast(`Navigated to page ${n}`);
+}
+
+// ─── Sidebar Nav ──────────────────────────────────────────────────────────────
+document.querySelectorAll('[data-page]').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('[data-page]').forEach(i => i.classList.remove('active'));
+    item.classList.add('active');
+    if (item.dataset.page !== 'browse') showToast('This section is coming soon.');
+  });
+});
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+// loadLaptops() is called above — it fetches from SharePoint then renders
+lucide.createIcons();
+</script>
+</body>
+</html>
