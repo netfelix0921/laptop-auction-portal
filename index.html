@@ -258,7 +258,6 @@ function renderGrid(data) {
         <div style="font-weight:600;font-size:1rem;">No laptops found</div>
         <div style="font-size:0.875rem;margin-top:4px;">Try adjusting your search or check back later.</div>
       </div>`;
-    lucide.createIcons();
     return;
   }
   grid.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:18px;">` +
@@ -298,7 +297,6 @@ function renderGrid(data) {
           </div>
         </div>`;
     }).join('') + `</div>`;
-  lucide.createIcons();
 }
 
 // ─── Load Laptops from SharePoint ────────────────────────────────────────────
@@ -309,7 +307,6 @@ async function loadLaptops() {
       <i data-lucide="loader" style="width:36px;height:36px;margin:0 auto 12px;display:block;color:#2563EB;animation:spin 1s linear infinite;"></i>
       <div style="font-weight:500;">Loading laptops from SharePoint...</div>
     </div>`;
-  lucide.createIcons();
 
   try {
     const response = await fetch(GET_LAPTOPS_API);
@@ -352,7 +349,6 @@ async function loadLaptops() {
           Retry
         </button>
       </div>`;
-    lucide.createIcons();
   }
 }
 
@@ -482,7 +478,6 @@ function renderPanel(l) {
       </div>
     </div>
   `;
-  lucide.createIcons();
 }
 
 // ─── Select Laptop ────────────────────────────────────────────────────────────
@@ -586,7 +581,6 @@ document.querySelectorAll('[data-page]').forEach(item => {
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 // loadLaptops() is called above — it fetches from SharePoint then renders
-lucide.createIcons();
 </script>
 </body>
 </html>
