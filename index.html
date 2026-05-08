@@ -294,8 +294,8 @@ function renderGrid(data) {
             </div>
             <button class="btn-bid" ${!isOpen ? 'disabled' : ''}
                     onclick="event.stopPropagation();selectLaptop(${l.id})">
-              <i data-lucide="gavel" style="width:14px;height:14px;"></i>
-              ${isOpen ? 'Place Bid' : 'Auction Closed'}
+              <i data-lucide="${isOpen ? 'eye' : 'lock'}" style="width:14px;height:14px;"></i>
+              ${isOpen ? 'See Details' : 'Auction Closed'}
             </button>
           </div>
         </div>`;
@@ -381,7 +381,8 @@ async function loadLaptops() {
         return isNaN(d) ? raw : d.toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' });
       })(),
       img:         item.image_url    || '',
-      gradient:    "linear-gradient(135deg,#EFF6FF,#DBEAFE)"
+      gradient:    "linear-gradient(135deg,#EFF6FF,#DBEAFE)",
+      formUrl:     item.form_url     || 'https://forms.cloud.microsoft/r/nBhQvh0Syy'
     }));
 
     selectedId = laptops[0].id;
@@ -470,26 +471,14 @@ function renderPanel(l) {
 
     ${(l.status||'').toLowerCase() === 'open' ? `
     <div style="margin-bottom:16px;">
-      <div style="font-size:0.95rem;font-weight:700;color:#0F172A;border-left:3px solid #2563EB;padding-left:10px;margin-bottom:14px;">Place Your Bid</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
-        <div>
-          <label style="font-size:0.75rem;font-weight:600;color:#334155;display:block;margin-bottom:6px;">Your Bid Amount</label>
-          <div style="position:relative;">
-            <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#94A3B8;font-size:0.85rem;font-weight:600;">₱</span>
-            <input class="form-input" id="bidAmount" type="number" placeholder="Enter amount" style="padding-left:28px;" min="${l.currentBid + 100}">
-          </div>
-        </div>
-        <div>
-          <label style="font-size:0.75rem;font-weight:600;color:#334155;display:block;margin-bottom:6px;">Code Name</label>
-          <div style="position:relative;">
-            <i data-lucide="user" class="input-icon"></i>
-            <input class="form-input" id="bidName" type="text" placeholder="Enter your code name">
-          </div>
-        </div>
+      <div style="font-size:0.95rem;font-weight:700;color:#0F172A;border-left:3px solid #2563EB;padding-left:10px;margin-bottom:14px;">Ready to Bid?</div>
+      <div style="background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:12px;padding:14px;margin-bottom:14px;font-size:0.8rem;color:#1E40AF;display:flex;gap:10px;align-items:flex-start;">
+        <svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' style="flex-shrink:0;margin-top:1px;"><circle cx='12' cy='12' r='10'/><line x1='12' y1='8' x2='12' y2='12'/><line x1='12' y1='16' x2='12.01' y2='16'/></svg>
+        <span>Bids are submitted securely via Microsoft Forms. Click the button below to open the form and place your bid for <b>${l.name}</b>.</span>
       </div>
-      <button class="btn-submit" onclick="submitBid(${l.id})">
-        Submit Bid
-        <svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><line x1='22' y1='2' x2='11' y2='13'/><polygon points='22 2 15 22 11 13 2 9 22 2'/></svg>
+      <button class="btn-submit" onclick="window.open('${l.formUrl || 'https://forms.cloud.microsoft/r/nBhQvh0Syy'}', '_blank')">
+        Place Bid
+        <svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6'/><polyline points='15 3 21 3 21 9'/><line x1='10' y1='14' x2='21' y2='3'/></svg>
       </button>
     </div>
     ` : `
@@ -555,56 +544,7 @@ function getFilteredSorted() {
 document.getElementById('searchInput').addEventListener('input', () => renderGrid(getFilteredSorted()));
 document.getElementById('sortSelect').addEventListener('change', () => renderGrid(getFilteredSorted()));
 
-// ─── Submit Bid ───────────────────────────────────────────────────────────────
-async function submitBid(id) {
-  const amount   = parseFloat(document.getElementById('bidAmount').value);
-  const codeName = document.getElementById('bidName').value.trim();
-  const laptop   = laptops.find(l => l.id === id);
-
-  if (!amount || !codeName) { showToast('⚠️ Please fill in all fields.'); return; }
-  if (amount <= laptop.currentBid) { showToast(`⚠️ Bid must exceed ₱${laptop.currentBid.toLocaleString()}`); return; }
-
-  const btn = document.querySelector('.btn-submit');
-  if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
-
-  try {
-    // 1. Save bid record
-    const { error: bidError } = await supabaseClient
-      .from('bids')
-      .insert([{
-        laptop_id:  laptop.id,
-        code_name:  codeName,
-        bid_amount: amount,
-        bid_date:   new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().replace('Z', '+08:00')
-      }]);
-    if (bidError) throw new Error(bidError.message);
-
-    // 2. Get accurate bid count from bids table
-    const { count, error: countError } = await supabaseClient
-      .from('bids')
-      .select('*', { count: 'exact', head: true })
-      .eq('laptop_id', laptop.id);
-    if (countError) throw new Error(countError.message);
-
-    // 3. Update laptop with new bid amount and accurate total
-    const { error: updateError } = await supabaseClient
-      .from('laptops')
-      .update({
-        bidding_amount: amount,
-        total_bids:     count
-      })
-      .eq('id', laptop.id);
-    if (updateError) throw new Error(updateError.message);
-
-    myBids[id] = { amount, codeName };
-    showToast(`✅ Bid of ₱${amount.toLocaleString()} submitted!`);
-    await loadLaptops();
-  } catch (err) {
-    console.error('submitBid error:', err);
-    showToast('❌ Failed to submit bid. Please try again.');
-    if (btn) { btn.disabled = false; btn.textContent = 'Submit Bid'; }
-  }
-}
+// ─── Bidding is handled via Microsoft Forms (see renderPanel) ─────────────────
 
 // ─── Wishlist ─────────────────────────────────────────────────────────────────
 function toggleWishlist() {
